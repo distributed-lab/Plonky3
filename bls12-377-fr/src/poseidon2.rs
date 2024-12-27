@@ -1,6 +1,8 @@
-//! Diffusion matrix for Bn254
+//! Diffusion matrix for Bls12-377
 //!
-//! Reference: https://github.com/HorizenLabs/poseidon2/blob/main/plain_implementations/src/poseidon2/poseidon2_instance_bn256.rs
+//! Even tho the reference is for the other field, we used it for BLS12-377Fr considering the common
+//! field nature.
+//! Reference: https://github.com/HorizenLabs/poseidon2/blob/main/plain_implementations/src/poseidon2/poseidon2_instance_bls12.rs
 
 use std::sync::OnceLock;
 
@@ -13,15 +15,15 @@ use p3_poseidon2::{
 
 use crate::Bls12377Fr;
 
-/// Degree of the chosen permutation polynomial for BN254, used as the Poseidon2 S-Box.
+/// Degree of the chosen permutation polynomial for BLS12-377, used as the Poseidon2 S-Box.
 ///
 /// As p - 1 is divisible by 2 and 3 the smallest choice for a degree D satisfying gcd(p - 1, D) = 1 is 5.
 /// TODO (nazarevsky): figure this out
 const BLS12337_S_BOX_DEGREE: u64 = 5;
 
-/// An implementation of the Poseidon2 hash function for the Bn254Fr field.
+/// An implementation of the Poseidon2 hash function for the [Bls12377Fr] field.
 ///
-/// It acts on arrays of the form `[Bn254Fr; WIDTH]`.
+/// It acts on arrays of the form `[Bls12377Fr; WIDTH]`.
 pub type Poseidon2Bls12337<const WIDTH: usize> = Poseidon2<
     Bls12377Fr,
     Poseidon2ExternalLayerBls12337<WIDTH>,
@@ -30,7 +32,7 @@ pub type Poseidon2Bls12337<const WIDTH: usize> = Poseidon2<
     BLS12337_S_BOX_DEGREE,
 >;
 
-/// Currently we only support a single width for Poseidon2 BN254.
+/// Currently we only support a single width for Poseidon2 Bls12377Fr.
 const BN254_WIDTH: usize = 3;
 
 #[inline]
@@ -113,22 +115,10 @@ mod tests {
 
     fn bls12337_from_ark_ff(input: ark_Bls12) -> Bls12377Fr {
         let bytes = input.into_bigint().to_bytes_le();
-
         let value = FFBls12377Fr::from_le_bytes_mod_order(input.0.to_bytes_le().as_slice());
-        // if value.is_some().into() {
-        //     Bn254Fr {
-        //         value: value.unwrap(),
-        //     }
-        // } else {
-        //     panic!("Invalid field element")
-        // }
-        let a = Bls12377Fr {
-            value: value,
-        };
-
-        println!("{}", a.to_string());
-
-        a
+        Bls12377Fr {
+            value,
+        }
     }
 
     #[test]

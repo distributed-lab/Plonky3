@@ -5,7 +5,7 @@ use crate::AIR_WIDTH;
 
 pub struct FibonacciAir {
     pub num_steps: usize,
-    pub final_value: u32,
+    pub final_value: u64,
 }
 
 impl<F: Field> BaseAir<F> for FibonacciAir {
@@ -30,7 +30,7 @@ impl<AB: AirBuilder> Air<AB> for FibonacciAir {
         builder.when_transition().assert_eq(next[1], local[0] + local[1]);
 
         // Constrain the final value
-        let final_value = AB::Expr::from_canonical_u32(self.final_value);
+        let final_value = AB::Expr::from_canonical_u64(self.final_value);
         builder.when_last_row().assert_eq(local[1], final_value);
     }
 }

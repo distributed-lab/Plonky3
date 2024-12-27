@@ -15,7 +15,8 @@ tracing.workspace = true
 zkhash.workspace = true
 ff.workspace = true
 
-[dev-dependencies]
+criterion = "0.5.1"
+
 p3-baby-bear.workspace = true
 p3-bn254-fr.workspace = true
 p3-challenger.workspace = true
@@ -39,3 +40,7 @@ tikv-jemallocator = "0.6"
 
 [features]
 parallel = ["p3-maybe-rayon/parallel"]
+
+[[bench]]
+name = "bench_fibonacci"
+harness = false
