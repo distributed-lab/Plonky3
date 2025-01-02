@@ -35,7 +35,6 @@ members = [
     "util",
     "uni-stark",
     "fibo-air",
-    "fibo-air-bls12337"
 ]
 
 [workspace.dependencies]
