@@ -52,7 +52,9 @@ impl InternalLayerConstructor<Bls12377Fr> for Poseidon2InternalLayerBls12337 {
     }
 }
 
-impl InternalLayer<Bls12377Fr, BN254_WIDTH, BLS12337_S_BOX_DEGREE> for Poseidon2InternalLayerBls12337 {
+impl InternalLayer<Bls12377Fr, BN254_WIDTH, BLS12337_S_BOX_DEGREE>
+    for Poseidon2InternalLayerBls12337
+{
     /// Perform the internal layers of the Poseidon2 permutation on the given state.
     fn permute_state(&self, state: &mut [Bls12377Fr; BN254_WIDTH]) {
         internal_permute_state::<Bls12377Fr, BN254_WIDTH, BLS12337_S_BOX_DEGREE>(
@@ -63,7 +65,8 @@ impl InternalLayer<Bls12377Fr, BN254_WIDTH, BLS12337_S_BOX_DEGREE> for Poseidon2
     }
 }
 
-pub type Poseidon2ExternalLayerBls12337<const WIDTH: usize> = ExternalLayerConstants<Bls12377Fr, WIDTH>;
+pub type Poseidon2ExternalLayerBls12337<const WIDTH: usize> =
+    ExternalLayerConstants<Bls12377Fr, WIDTH>;
 
 impl<const WIDTH: usize> ExternalLayerConstructor<Bls12377Fr, WIDTH>
     for Poseidon2ExternalLayerBls12337<WIDTH>
@@ -108,7 +111,10 @@ mod tests {
     use zkhash::fields::bls12::FpBLS12 as ark_Bls12;
     // use zkhash::fields::bn256::FpBN256 as ark_FpBN256;
     use zkhash::poseidon2::poseidon2::Poseidon2 as Poseidon2Ref;
-    use zkhash::poseidon2::poseidon2_instance_bls12::{POSEIDON2_BLS_2_PARAMS, POSEIDON2_BLS_3_PARAMS, POSEIDON2_BLS_4_PARAMS, POSEIDON2_BLS_8_PARAMS, RC3};
+    use zkhash::poseidon2::poseidon2_instance_bls12::{
+        POSEIDON2_BLS_2_PARAMS, POSEIDON2_BLS_3_PARAMS, POSEIDON2_BLS_4_PARAMS,
+        POSEIDON2_BLS_8_PARAMS, RC3,
+    };
 
     use super::*;
     use crate::FFBls12377Fr;
@@ -116,9 +122,7 @@ mod tests {
     fn bls12337_from_ark_ff(input: ark_Bls12) -> Bls12377Fr {
         let bytes = input.into_bigint().to_bytes_le();
         let value = FFBls12377Fr::from_le_bytes_mod_order(input.0.to_bytes_le().as_slice());
-        Bls12377Fr {
-            value,
-        }
+        Bls12377Fr { value }
     }
 
     #[test]

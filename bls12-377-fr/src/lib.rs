@@ -2,21 +2,23 @@
 
 mod poseidon2;
 
+pub use ark_bls12_377::Fr as FFBls12377Fr;
 use core::fmt;
 use core::fmt::{Debug, Display, Formatter};
 use core::hash::{Hash, Hasher};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
-pub use poseidon2::Poseidon2Bls12337;
-pub use ark_bls12_377::Fr as FFBls12377Fr;
 use num_bigint::BigUint;
 use p3_field::{Field, FieldAlgebra, Packable, PrimeField, TwoAdicField};
+pub use poseidon2::Poseidon2Bls12337;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use ark_ff::{
+    BigInteger, FftField, Field as ArkField, PrimeField as ArkPrimeField, UniformRand, Zero,
+};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_ff::{BigInteger, FftField, Field as ArkField, PrimeField as ArkPrimeField, UniformRand, Zero};
 
 /// The BLS12-377 curve scalar field prime, defined as `F_r` where `r = 8444461749428370424248824938781546531375899335154063827935233455917409239041`.
 #[derive(Copy, Clone, Eq)]
@@ -91,7 +93,7 @@ impl PartialOrd for Bls12377Fr {
 
 impl Display for Bls12377Fr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        <Bls12377Fr as Debug>::fmt(&self, f)
+        <Bls12377Fr as Debug>::fmt(self, f)
     }
 }
 
@@ -357,12 +359,10 @@ mod tests {
         assert_eq!(f_1 + f_r_minus_1, expected_result);
 
         let f_r_minus_2 = F::new(
-            FFBls12377Fr::from_str(&(F::order() - BigUint::new(vec![2])).to_str_radix(10))
-                .unwrap(),
+            FFBls12377Fr::from_str(&(F::order() - BigUint::new(vec![2])).to_str_radix(10)).unwrap(),
         );
         let expected_result = F::new(
-            FFBls12377Fr::from_str(&(F::order() - BigUint::new(vec![3])).to_str_radix(10))
-                .unwrap(),
+            FFBls12377Fr::from_str(&(F::order() - BigUint::new(vec![3])).to_str_radix(10)).unwrap(),
         );
         assert_eq!(f_r_minus_1 + f_r_minus_2, expected_result);
 
