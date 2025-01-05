@@ -63,7 +63,7 @@ impl InternalLayer<Bn254Fr, BN254_WIDTH, BN254_S_BOX_DEGREE> for Poseidon2Intern
 pub type Poseidon2ExternalLayerBn254<const WIDTH: usize> = ExternalLayerConstants<Bn254Fr, WIDTH>;
 
 impl<const WIDTH: usize> ExternalLayerConstructor<Bn254Fr, WIDTH>
-for Poseidon2ExternalLayerBn254<WIDTH>
+    for Poseidon2ExternalLayerBn254<WIDTH>
 {
     fn new_from_constants(external_constants: ExternalLayerConstants<Bn254Fr, WIDTH>) -> Self {
         external_constants
@@ -71,7 +71,7 @@ for Poseidon2ExternalLayerBn254<WIDTH>
 }
 
 impl<const WIDTH: usize> ExternalLayer<Bn254Fr, WIDTH, BN254_S_BOX_DEGREE>
-for Poseidon2ExternalLayerBn254<WIDTH>
+    for Poseidon2ExternalLayerBn254<WIDTH>
 {
     /// Perform the initial external layers of the Poseidon2 permutation on the given state.
     fn permute_state_initial(&self, state: &mut [Bn254Fr; WIDTH]) {
