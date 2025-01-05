@@ -1,6 +1,7 @@
 //! The scalar field of the BLS12-377 curve, defined as `F_r` where `r = 8444461749428370424248824938781546531375899335154063827935233455917409239041`
 
 mod poseidon2;
+pub mod rc;
 
 use core::fmt;
 use core::fmt::{Debug, Display, Formatter};

@@ -18,8 +18,7 @@ use crate::Bls12377Fr;
 /// Degree of the chosen permutation polynomial for BLS12-377, used as the Poseidon2 S-Box.
 ///
 /// As p - 1 is divisible by 2 and 3 the smallest choice for a degree D satisfying gcd(p - 1, D) = 1 is 5.
-/// TODO (nazarevsky): figure this out
-const BLS12337_S_BOX_DEGREE: u64 = 5;
+const BLS12337_S_BOX_DEGREE: u64 = 17;
 
 /// An implementation of the Poseidon2 hash function for the [Bls12377Fr] field.
 ///
@@ -33,7 +32,7 @@ pub type Poseidon2Bls12337<const WIDTH: usize> = Poseidon2<
 >;
 
 /// Currently we only support a single width for Poseidon2 Bls12377Fr.
-const BN254_WIDTH: usize = 3;
+const BLS12337_WIDTH: usize = 3;
 
 #[inline]
 fn get_diffusion_matrix_3() -> &'static [Bls12377Fr; 3] {
@@ -52,10 +51,10 @@ impl InternalLayerConstructor<Bls12377Fr> for Poseidon2InternalLayerBls12337 {
     }
 }
 
-impl InternalLayer<Bls12377Fr, BN254_WIDTH, BLS12337_S_BOX_DEGREE> for Poseidon2InternalLayerBls12337 {
+impl InternalLayer<Bls12377Fr, BLS12337_WIDTH, BLS12337_S_BOX_DEGREE> for Poseidon2InternalLayerBls12337 {
     /// Perform the internal layers of the Poseidon2 permutation on the given state.
-    fn permute_state(&self, state: &mut [Bls12377Fr; BN254_WIDTH]) {
-        internal_permute_state::<Bls12377Fr, BN254_WIDTH, BLS12337_S_BOX_DEGREE>(
+    fn permute_state(&self, state: &mut [Bls12377Fr; BLS12337_WIDTH]) {
+        internal_permute_state::<Bls12377Fr, BLS12337_WIDTH, BLS12337_S_BOX_DEGREE>(
             state,
             |x| matmul_internal(x, *get_diffusion_matrix_3()),
             &self.internal_constants,
@@ -100,47 +99,106 @@ impl<const WIDTH: usize> ExternalLayer<Bls12377Fr, WIDTH, BLS12337_S_BOX_DEGREE>
 // TODO (nazarevsky): the test is not working
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+    use ark_ff::BigInt;
     use ff::PrimeField;
+    use lazy_static::lazy_static;
     use p3_poseidon2::ExternalLayerConstants;
     use p3_symmetric::Permutation;
     use rand::Rng;
     use zkhash::ark_ff::{BigInteger, PrimeField as ark_PrimeField};
-    use zkhash::fields::bls12::FpBLS12 as ark_Bls12;
-    // use zkhash::fields::bn256::FpBN256 as ark_FpBN256;
-    use zkhash::poseidon2::poseidon2::Poseidon2 as Poseidon2Ref;
-    use zkhash::poseidon2::poseidon2_instance_bls12::{POSEIDON2_BLS_2_PARAMS, POSEIDON2_BLS_3_PARAMS, POSEIDON2_BLS_4_PARAMS, POSEIDON2_BLS_8_PARAMS, RC3};
+    use zkhash::fields::bls12::{FpBLS12 as ark_Bls12, FpBLS12};
+    use crate::rc::RC1;
+    type Scalar = FpBLS12;
 
     use super::*;
     use crate::FFBls12377Fr;
 
-    fn bls12337_from_ark_ff(input: ark_Bls12) -> Bls12377Fr {
-        let bytes = input.into_bigint().to_bytes_le();
-        let value = FFBls12377Fr::from_le_bytes_mod_order(input.0.to_bytes_le().as_slice());
+    fn bls12337_from_str(input: String) -> Bls12377Fr {
         Bls12377Fr {
-            value,
+            value: FFBls12377Fr::from_str(&input).unwrap(),
         }
     }
 
+    struct TestCase {
+        input: [Bls12377Fr; 3],
+        output: [Bls12377Fr; 3]
+    }
+
+    lazy_static!{
+        static ref test_cases: Vec<TestCase> = vec![
+            TestCase{
+                input: [
+                    Bls12377Fr::from_canonical_u64(1),
+                    Bls12377Fr::from_canonical_u64(1),
+                    Bls12377Fr::from_canonical_u64(1)
+                ],
+                output: [
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("860866526687489428989707845699174300428968972136191802628058085350960837665").unwrap()
+                    },
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("5110597475731104621758769815158117224808582320756097893691034814235891573903").unwrap()
+                    },
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("7729317803422720288984283127941214463170714974376170076017011151108586598169").unwrap()
+                    }
+                ],
+            },
+            TestCase{
+                input: [
+                    Bls12377Fr::from_canonical_u64(3457435785349743598),
+                    Bls12377Fr::from_canonical_u64(6786347127498807634),
+                    Bls12377Fr::from_canonical_u64(0)
+                ],
+                output: [
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("675583857530871455730788450062580113099802122446214910490159210203931204829").unwrap()
+                    },
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("5907675690176137521797568886899101531719052562432127804242792579253736799082").unwrap()
+                    },
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("3580163914861780974242579068588450174896166405220547377222985096420674645846").unwrap()
+                    }
+                ],
+            },
+            TestCase{
+                input: [
+                    Bls12377Fr::from_canonical_u64(9379455689548),
+                    Bls12377Fr::from_canonical_u64(7608439748),
+                    Bls12377Fr::from_canonical_u64(954338476438754632)
+                ],
+                output: [
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("3055206294377317359307613780575828874003458762314725501486826284300578105158").unwrap()
+                    },
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("5797369338536356401300628927961554112193154358645694251738402018195827090483").unwrap()
+                    },
+                    Bls12377Fr{
+                        value: FFBls12377Fr::from_str("6809256165826541738832209298614382604751407820145487553453583098940097598887").unwrap()
+                    }
+                ],
+            },
+        ];
+    }
+
     #[test]
-    fn test_poseidon2_bn254() {
+    fn test_poseidon2_bls12337() {
         const WIDTH: usize = 3;
         const ROUNDS_F: usize = 8;
         const ROUNDS_P: usize = 56;
 
         type F = Bls12377Fr;
 
-        let mut rng = rand::thread_rng();
-
-        // Poiseidon2 reference implementation from zkhash repo.
-        let poseidon2_ref = Poseidon2Ref::new(&POSEIDON2_BLS_3_PARAMS);
-
-        // Copy over round constants from zkhash.
-        let mut round_constants: Vec<[F; WIDTH]> = RC3
+        // Copy over round constants from pre generated values.
+        let mut round_constants: Vec<[F; WIDTH]> = RC1
             .iter()
             .map(|vec| {
                 vec.iter()
                     .cloned()
-                    .map(bls12337_from_ark_ff)
+                    .map(bls12337_from_str)
                     .collect::<Vec<_>>()
                     .try_into()
                     .unwrap()
@@ -149,42 +207,25 @@ mod tests {
 
         let internal_start = ROUNDS_F / 2;
         let internal_end = (ROUNDS_F / 2) + ROUNDS_P;
-        let internal_round_constants = round_constants
+
+        let internal_round_constants = round_constants.clone()
             .drain(internal_start..internal_end)
             .map(|vec| vec[0])
             .collect::<Vec<_>>();
+
         let external_round_constants = ExternalLayerConstants::new(
             round_constants[..(ROUNDS_F / 2)].to_vec(),
-            round_constants[(ROUNDS_F / 2)..].to_vec(),
+            round_constants[internal_end..].to_vec(),
         );
+
         // Our Poseidon2 implementation.
         let poseidon2 = Poseidon2Bls12337::new(external_round_constants, internal_round_constants);
 
-        // Generate random input and convert to both Goldilocks field formats.
-        let input_ark_ff = rng.gen::<[ark_Bls12; WIDTH]>();
-        let input: [Bls12377Fr; 3] = input_ark_ff
-            .iter()
-            .cloned()
-            .map(bls12337_from_ark_ff)
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
+        test_cases.iter().for_each(|case| {
+            let mut output = case.input;
+            poseidon2.permute_mut(&mut output);
 
-        // Run reference implementation.
-        let output_ref = poseidon2_ref.permutation(&input_ark_ff);
-
-        let expected: [F; WIDTH] = output_ref
-            .iter()
-            .cloned()
-            .map(bls12337_from_ark_ff)
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
-
-        // Run our implementation.
-        let mut output = input;
-        poseidon2.permute_mut(&mut output);
-
-        assert_eq!(output, expected);
+            assert_eq!(output, case.output);
+        });
     }
 }
