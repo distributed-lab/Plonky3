@@ -31,9 +31,6 @@ zkhash.workspace = true
 
 [features]
 default = []
-table = [
-    "halo2curves/bn256-table",
-] # Generate cached table of [0, 2^16) in Bn254Fr at compile time
 
 [[bench]]
 name = "bench_field"
