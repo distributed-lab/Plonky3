@@ -1,7 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
-use p3_field::Field;
-use p3_symmetric::{CryptographicHasher, CryptographicPermutation};
+use p3_field::{Field, PrimeField};
+use p3_symmetric::CryptographicHasher;
 
 use crate::{CanObserve, CanSample, CanSampleBits, FieldChallenger};
 
@@ -83,21 +83,17 @@ where
 
 impl<F, P, const OUT_LEN: usize> CanSampleBits<usize> for HashChallenger<F, P, OUT_LEN>
 where
-    F: Field,
-    P: CryptographicPermutation<[F; OUT_LEN]>,
+    F: PrimeField,
+    P: CryptographicHasher<F, [F; OUT_LEN]>,
 {
     fn sample_bits(&mut self, bits: usize) -> usize {
         let rand_f: F = self.sample();
-        let rand_usize = rand_f.as_canonical_u32() as usize;
+        let rand_usize = *rand_f
+            .as_canonical_biguint()
+            .to_u64_digits()
+            .first()
+            .unwrap() as usize;
         rand_usize & ((1 << bits) - 1)
-    }
-}
-impl<T, P, const OUT_LEN: usize> CanObserve<T> for HashChallenger<T, P, OUT_LEN>
-where
-    P: CryptographicPermutation<[T; OUT_LEN]>,
-{
-    fn observe(&mut self, v: T) {
-        self.observe(v);
     }
 }
 

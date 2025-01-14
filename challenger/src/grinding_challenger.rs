@@ -1,7 +1,7 @@
 use core::cmp::min;
 use p3_field::{Field, PrimeField, PrimeField32, PrimeField64};
 use p3_maybe_rayon::prelude::*;
-use p3_symmetric::CryptographicPermutation;
+use p3_symmetric::{CryptographicHasher, CryptographicPermutation};
 use tracing::instrument;
 
 use crate::{CanObserve, CanSampleBits, DuplexChallenger, HashChallenger, MultiField32Challenger};
@@ -63,8 +63,8 @@ where
 
 impl<F, P, const WIDTH: usize> GrindingChallenger for HashChallenger<F, P, WIDTH>
 where
-    F: Field,
-    P: CryptographicPermutation<[F; WIDTH]>,
+    F: PrimeField,
+    P: CryptographicHasher<F, [F; WIDTH]> + Sync,
 {
     type Witness = F;
 
