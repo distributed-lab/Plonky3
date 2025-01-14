@@ -1,7 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use p3_field::{Field, PrimeField};
-use p3_symmetric::CryptographicHasher;
+use p3_symmetric::{CryptographicHasher, Hash};
 
 use crate::{CanObserve, CanSample, CanSampleBits, FieldChallenger};
 
@@ -94,6 +94,16 @@ where
             .first()
             .unwrap() as usize;
         rand_usize & ((1 << bits) - 1)
+    }
+}
+
+impl<F, H, const OUT_LEN: usize> CanObserve<Hash<F, F, OUT_LEN>> for HashChallenger<F, H, OUT_LEN>
+where
+    F: Field,
+    H: CryptographicHasher<F, [F; OUT_LEN]>,
+{
+    fn observe(&mut self, value: Hash<F, F, OUT_LEN>) {
+        self.observe(Vec::from(value.as_ref()))
     }
 }
 
