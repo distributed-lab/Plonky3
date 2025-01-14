@@ -54,7 +54,7 @@ where
 }
 
 impl<T, H, const N: usize, const OUT_LEN: usize> CanObserve<[T; N]>
-for HashChallenger<T, H, OUT_LEN>
+    for HashChallenger<T, H, OUT_LEN>
 where
     T: Clone,
     H: CryptographicHasher<T, [T; OUT_LEN]>,
@@ -78,6 +78,26 @@ where
         self.output_buffer
             .pop()
             .expect("Output buffer should be non-empty")
+    }
+}
+
+impl<F, P, const OUT_LEN: usize> CanSampleBits<usize> for HashChallenger<F, P, OUT_LEN>
+where
+    F: Field,
+    P: CryptographicPermutation<[F; OUT_LEN]>,
+{
+    fn sample_bits(&mut self, bits: usize) -> usize {
+        let rand_f: F = self.sample();
+        let rand_usize = rand_f.as_canonical_u32() as usize;
+        rand_usize & ((1 << bits) - 1)
+    }
+}
+impl<T, P, const OUT_LEN: usize> CanObserve<T> for HashChallenger<T, P, OUT_LEN>
+where
+    P: CryptographicPermutation<[T; OUT_LEN]>,
+{
+    fn observe(&mut self, v: T) {
+        self.observe(v);
     }
 }
 
