@@ -27,7 +27,7 @@ num-traits.workspace = true
 serde_json.workspace = true
 
 [features]
-default = []
+default = ["ark-ff/asm"]
 
 [[bench]]
 name = "bench_field"
