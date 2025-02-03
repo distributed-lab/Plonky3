@@ -28,6 +28,7 @@ serde_json.workspace = true
 
 [features]
 default = []
+ark-ff-asm = ["ark-ff/asm"]
 
 [[bench]]
 name = "bench_field"
