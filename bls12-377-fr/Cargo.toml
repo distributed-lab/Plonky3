@@ -14,10 +14,9 @@ rand.workspace = true
 serde = { workspace = true, features = ["derive"] }
 lazy_static = { version = "1.5.0" }
 
-# Ark
-ark-bls12-377 = { git = "https://github.com/distributed-lab/algebra.git", branch = "master" }
-ark-serialize = { git = "https://github.com/distributed-lab/algebra.git", branch = "master" }
-ark-ff = { git = "https://github.com/distributed-lab/algebra.git", branch = "master" }
+# Feild
+crrl = {path = "../../crrl", features = ["modint256"]}
+bytes = "1.10.0"
 
 [dev-dependencies]
 p3-field-testing.workspace = true
@@ -28,7 +27,6 @@ serde_json.workspace = true
 
 [features]
 default = []
-asm = ["ark-bls12-377/asm", "ark-ff/asm"]
 
 [[bench]]
 name = "bench_field"
