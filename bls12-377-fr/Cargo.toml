@@ -15,9 +15,9 @@ serde = { workspace = true, features = ["derive"] }
 lazy_static = { version = "1.5.0" }
 
 # Ark
-ark-bls12-377 = { version = "0.5.0" }
-ark-serialize = { version = "0.5.0" }
-ark-ff        = { version = "0.5.0" }
+ark-bls12-377 = { git = "https://github.com/distributed-lab/algebra.git", branch = "master" }
+ark-serialize = { git = "https://github.com/distributed-lab/algebra.git", branch = "master" }
+ark-ff = { git = "https://github.com/distributed-lab/algebra.git", branch = "master" }
 
 [dev-dependencies]
 p3-field-testing.workspace = true
@@ -28,6 +28,7 @@ serde_json.workspace = true
 
 [features]
 default = []
+asm = ["ark-bls12-377/asm", "ark-ff/asm"]
 
 [[bench]]
 name = "bench_field"
