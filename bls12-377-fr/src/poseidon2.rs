@@ -100,8 +100,6 @@ impl<const WIDTH: usize> ExternalLayer<Bls12_377Fr, WIDTH, BLS12_337_S_BOX_DEGRE
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use lazy_static::lazy_static;
     use p3_poseidon2::ExternalLayerConstants;
     use p3_symmetric::Permutation;

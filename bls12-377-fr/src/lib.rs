@@ -14,7 +14,6 @@ pub use poseidon2::Poseidon2Bls12337;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use num_traits::ToBytes;
 
 type Scalar = crrl::field::ModInt256<
     725501752471715841u64,
@@ -70,7 +69,7 @@ impl Packable for Bls12_377Fr {}
 
 impl Hash for Bls12_377Fr {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let mut serialized_bytes = self.value.encode32();
+        let serialized_bytes = self.value.encode32();
         serialized_bytes.hash(state);
     }
 }
@@ -289,8 +288,6 @@ impl TwoAdicField for Bls12_377Fr {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use num_traits::One;
     use p3_field_testing::{test_field, test_two_adic_field};
 
