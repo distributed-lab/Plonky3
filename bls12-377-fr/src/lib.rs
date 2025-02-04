@@ -1,5 +1,5 @@
 //! The scalar field of the BLS12-377 curve, defined as `F_r` where `r = 8444461749428370424248824938781546531375899335154063827935233455917409239041`
-mod poseidon2;
+pub mod poseidon2;
 pub mod rc;
 
 use core::fmt;
@@ -7,88 +7,70 @@ use core::fmt::{Debug, Display, Formatter};
 use core::hash::{Hash, Hasher};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
-
-pub use ark_bls12_377::Fr as FF_Bls12_377Fr;
-use ark_ff::{
-    AdditiveGroup, BigInteger, FftField, Field as ArkField, PrimeField as ArkPrimeField,
-    UniformRand, Zero,
-};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use num_bigint::BigUint;
+use std::str::FromStr;
+use num_bigint::{BigUint, ParseBigIntError};
 use p3_field::{Field, FieldAlgebra, Packable, PrimeField, TwoAdicField};
 pub use poseidon2::Poseidon2Bls12337;
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+pub type Scalar = crrl::field::ModInt256<
+    725501752471715841u64,
+    6461107452199829505u64,
+    6968279316240510977u64,
+    1345280370688173398u64,
+>;
 
 /// The BLS12-377 curve scalar field prime, defined as `F_r` where `r = 8444461749428370424248824938781546531375899335154063827935233455917409239041`.
-#[derive(Copy, Clone, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Bls12_377Fr {
-    pub value: FF_Bls12_377Fr,
+    pub value: Scalar,
 }
 
+
 impl Bls12_377Fr {
-    pub const fn new(value: FF_Bls12_377Fr) -> Self {
+    pub const fn new(value: Scalar) -> Self {
         Self { value }
+    }
+
+    pub fn from_str(s: &str) -> Result<Self, ParseBigIntError> {
+        Ok(Self::new(Scalar::decode_reduce(&BigUint::from_str(s)?.to_bytes_le())))
     }
 }
 
 impl Serialize for Bls12_377Fr {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut bytes = Vec::new();
-        self.value
-            .serialize_compressed(&mut bytes)
-            .map_err(|err| serde::ser::Error::custom(err.to_string()))?;
-        serializer.serialize_bytes(&bytes)
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer
+    {
+        serializer.serialize_bytes(&self.value.encode32())
     }
 }
 
 impl<'de> Deserialize<'de> for Bls12_377Fr {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let bytes: Vec<u8> = Deserialize::deserialize(d)?;
-
-        let value = FF_Bls12_377Fr::deserialize_compressed(&bytes[..]);
-
-        value
-            .map(Self::new)
-            .map_err(|_err| serde::de::Error::custom("Invalid field element"))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+        let bytes: Vec<u8> = Deserialize::deserialize(deserializer)?;
+        Ok(Self::new(Scalar::decode_reduce(&bytes)))
     }
 }
 
 impl Default for Bls12_377Fr {
     fn default() -> Self {
-        Self::new(FF_Bls12_377Fr::default())
+        Self::new(Scalar::ZERO)
     }
 }
 
-impl PartialEq for Bls12_377Fr {
-    fn eq(&self, other: &Self) -> bool {
-        self.value.eq(&other.value)
-    }
-}
 
 impl Packable for Bls12_377Fr {}
 
 impl Hash for Bls12_377Fr {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let mut serialized_bytes = Vec::new();
-        self.value
-            .serialize_compressed(&mut serialized_bytes)
-            .unwrap();
-
+        let serialized_bytes = self.value.encode32();
         serialized_bytes.hash(state);
-    }
-}
-
-impl Ord for Bls12_377Fr {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.value.cmp(&other.value)
-    }
-}
-
-impl PartialOrd for Bls12_377Fr {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -107,20 +89,13 @@ impl Debug for Bls12_377Fr {
 impl FieldAlgebra for Bls12_377Fr {
     type F = Self;
 
-    const ZERO: Self = Self::new(FF_Bls12_377Fr::ZERO);
-    const ONE: Self = Self::new(FF_Bls12_377Fr::ONE);
+    const ZERO: Self = Self::new(Scalar::ZERO);
+    const ONE: Self = Self::new(Scalar::ONE);
 
-    const TWO: Self = Self::new(FF_Bls12_377Fr::new(ark_ff::biginteger::BigInt::new([
-        2_u64, 0, 0, 0,
-    ])));
+    const TWO: Self = Self::new(Scalar::w64le(2, 0, 0, 0));
 
     // r - 1 = 0x12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000
-    const NEG_ONE: Self = Self::new(FF_Bls12_377Fr::new(ark_ff::biginteger::BigInt::new([
-        0x0a11800000000000,
-        0x59aa76fed0000001,
-        0x60b44d1e5c37b001,
-        0x12ab655e9a2ca556,
-    ])));
+    const NEG_ONE: Self = Self::new(Scalar::MINUS_ONE);
 
     #[inline]
     fn from_f(f: Self::F) -> Self {
@@ -128,35 +103,35 @@ impl FieldAlgebra for Bls12_377Fr {
     }
 
     fn from_bool(b: bool) -> Self {
-        Self::new(FF_Bls12_377Fr::from(b as u64))
+        Self::new(Scalar::from_i64(b as i64))
     }
 
     fn from_canonical_u8(n: u8) -> Self {
-        Self::new(FF_Bls12_377Fr::from(n as u64))
+        Self::new(Scalar::from_u64(n as u64))
     }
 
     fn from_canonical_u16(n: u16) -> Self {
-        Self::new(FF_Bls12_377Fr::from(n as u64))
+        Self::new(Scalar::from_u32(n as u32))
     }
 
     fn from_canonical_u32(n: u32) -> Self {
-        Self::new(FF_Bls12_377Fr::from(n as u64))
+        Self::new(Scalar::from_u32(n))
     }
 
     fn from_canonical_u64(n: u64) -> Self {
-        Self::new(FF_Bls12_377Fr::from(n))
+        Self::new(Scalar::from_u64(n))
     }
 
     fn from_canonical_usize(n: usize) -> Self {
-        Self::new(FF_Bls12_377Fr::from(n as u64))
+        Self::new(Scalar::from_u64(n as u64))
     }
 
     fn from_wrapped_u32(n: u32) -> Self {
-        Self::new(FF_Bls12_377Fr::from(n as u64))
+        Self::new(Scalar::from_u32(n))
     }
 
     fn from_wrapped_u64(n: u64) -> Self {
-        Self::new(FF_Bls12_377Fr::from(n))
+        Self::new(Scalar::from_u64(n))
     }
 }
 
@@ -164,16 +139,25 @@ impl Field for Bls12_377Fr {
     type Packing = Self;
 
     // generator is 22
-    const GENERATOR: Self = Self::new(FF_Bls12_377Fr::new(ark_ff::biginteger::BigInt::new([
-        22_u64, 0, 0, 0,
-    ])));
+    const GENERATOR: Self = Self::new(Scalar::w64le(22, 0, 0, 0));
 
     fn is_zero(&self) -> bool {
-        self.value.is_zero()
+        self.value.iszero() == 0xFFFFFFFF
     }
 
     fn try_inverse(&self) -> Option<Self> {
-        self.value.inverse().map(Self::new)
+        if self.is_zero() {
+            return None
+        }
+
+
+        Some(
+            Self::new(
+                Scalar::decode_reduce(
+                    &self.as_canonical_biguint().modinv(&Self::order()).unwrap().to_bytes_le()
+                )
+            )
+        )
     }
 
     /// r = 0x12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001
@@ -200,7 +184,7 @@ impl Field for Bls12_377Fr {
 
 impl PrimeField for Bls12_377Fr {
     fn as_canonical_biguint(&self) -> BigUint {
-        BigUint::from_bytes_le(self.value.into_bigint().to_bytes_le().as_slice())
+        BigUint::from_bytes_le(&self.value.encode32())
     }
 }
 
@@ -278,15 +262,23 @@ impl Div for Bls12_377Fr {
 impl Distribution<Bls12_377Fr> for Standard {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Bls12_377Fr {
-        Bls12_377Fr::new(FF_Bls12_377Fr::rand(rng))
+        let mut buf = [0u8;32];
+        rng.fill_bytes(&mut buf);
+        Bls12_377Fr::new(Scalar::decode_reduce(&buf))
     }
 }
 
 impl TwoAdicField for Bls12_377Fr {
-    const TWO_ADICITY: usize = FF_Bls12_377Fr::TWO_ADICITY as usize;
+    const TWO_ADICITY: usize = 47;
 
     fn two_adic_generator(bits: usize) -> Self {
-        let mut omega = FF_Bls12_377Fr::TWO_ADIC_ROOT_OF_UNITY;
+        // TWO_ADIC_ROOT_OF_UNITY = 8065159656716812877374967518403273466521432693661810619979959746626482506078
+        let mut omega = Scalar::from_w64le(
+            5147320413305080158,
+            11191566996928196682,
+            6973424315369300271,
+            1284854061110734017,
+        );
         for _ in bits..Self::TWO_ADICITY {
             omega = omega.square();
         }
@@ -296,8 +288,6 @@ impl TwoAdicField for Bls12_377Fr {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use num_traits::One;
     use p3_field_testing::{test_field, test_two_adic_field};
 
@@ -307,50 +297,46 @@ mod tests {
 
     #[test]
     fn test_bls12_337fr() {
-        let f = F::new(FF_Bls12_377Fr::from(100));
+        let f = F::new(Scalar::from_u64(100));
         assert_eq!(f.as_canonical_biguint(), BigUint::new(vec![100]));
 
         let f = F::from_canonical_u64(0);
         assert!(f.is_zero());
 
-        let f = F::new(FF_Bls12_377Fr::from_str(&F::order().to_str_radix(10)).unwrap());
+        let f = F::new(Scalar::decode_reduce(&F::order().to_bytes_le()));
         assert!(f.is_zero());
 
         assert_eq!(F::GENERATOR.as_canonical_biguint(), BigUint::new(vec![22]));
 
-        let f_1 = F::new(FF_Bls12_377Fr::from(1_u128));
-        let f_1_copy = F::new(FF_Bls12_377Fr::from(1_u128));
+        let f_1 = F::new(Scalar::from_u128(1_u128));
+        let f_1_copy = F::new(Scalar::from_u128(1_u128));
 
         let expected_result = F::ZERO;
         assert_eq!(f_1 - f_1_copy, expected_result);
 
-        let expected_result = F::new(FF_Bls12_377Fr::from(2_u128));
+        let expected_result = F::new(Scalar::from_u128(2_u128));
         assert_eq!(f_1 + f_1_copy, expected_result);
 
-        let f_2 = F::new(FF_Bls12_377Fr::from(2_u128));
-        let expected_result = F::new(FF_Bls12_377Fr::from(3_u128));
+        let f_2 = F::new(Scalar::from_u128(2_u128));
+        let expected_result = F::new(Scalar::from_u128(3_u128));
         assert_eq!(f_1 + f_1_copy * f_2, expected_result);
 
-        let expected_result = F::new(FF_Bls12_377Fr::from(5_u128));
+        let expected_result = F::new(Scalar::from_u128(5_u128));
         assert_eq!(f_1 + f_2 * f_2, expected_result);
 
-        let f_r_minus_1 = F::new(
-            FF_Bls12_377Fr::from_str(&(F::order() - BigUint::one()).to_str_radix(10)).unwrap(),
-        );
+        let f_r_minus_1 =
+            F::new(Scalar::decode_reduce(&(F::order() - BigUint::one()).to_bytes_le()));
         let expected_result = F::ZERO;
         assert_eq!(f_1 + f_r_minus_1, expected_result);
 
-        let f_r_minus_2 = F::new(
-            FF_Bls12_377Fr::from_str(&(F::order() - BigUint::new(vec![2])).to_str_radix(10))
-                .unwrap(),
-        );
-        let expected_result = F::new(
-            FF_Bls12_377Fr::from_str(&(F::order() - BigUint::new(vec![3])).to_str_radix(10))
-                .unwrap(),
-        );
+        let f_r_minus_2 =
+            F::new(Scalar::decode_reduce(&(F::order() - BigUint::new(vec![2])).to_bytes_le()));
+
+        let expected_result =
+            F::new(Scalar::decode_reduce(&(F::order() - BigUint::new(vec![3])).to_bytes_le()));
         assert_eq!(f_r_minus_1 + f_r_minus_2, expected_result);
 
-        let expected_result = F::new(FF_Bls12_377Fr::from(1_u128));
+        let expected_result = F::new(Scalar::from_u128(1_u128));
         assert_eq!(f_r_minus_1 - f_r_minus_2, expected_result);
 
         let expected_result = f_r_minus_1;
@@ -359,11 +345,11 @@ mod tests {
         let expected_result = f_r_minus_2;
         assert_eq!(f_r_minus_1 - f_1, expected_result);
 
-        let expected_result = F::new(FF_Bls12_377Fr::from(3_u128));
+        let expected_result = F::new(Scalar::from_u128(3_u128));
         assert_eq!(f_2 * f_2 - f_1, expected_result);
 
         // Generator check
-        let expected_multiplicative_group_generator = F::new(FF_Bls12_377Fr::from(22_u128));
+        let expected_multiplicative_group_generator = F::new(Scalar::from_u128(22_u128));
         assert_eq!(F::GENERATOR, expected_multiplicative_group_generator);
 
         let f_serialized = serde_json::to_string(&f).unwrap();
