@@ -15,7 +15,7 @@ use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-type Scalar = crrl::field::ModInt256<
+pub type Scalar = crrl::field::ModInt256<
     725501752471715841u64,
     6461107452199829505u64,
     6968279316240510977u64,
